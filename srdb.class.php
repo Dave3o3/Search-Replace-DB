@@ -185,6 +185,11 @@ class icit_srdb {
      */
     public $page_size = 50000;
 
+    /**
+     * Temporary var to check if we are in elementor patching context.
+     * @var bool
+     */
+    public $elementor_patch_active = FALSE;
 
     /**
      * Searches for WP or Drupal context
@@ -830,6 +835,11 @@ class icit_srdb {
         // some unserialised data cannot be re-serialised eg. SimpleXMLElements
         try {
 
+            if ( is_string( $data ) && strpos( $data, "Elementor\\Core\\Logger" ) !== FALSE ) {
+                $this->elementor_patch_active = TRUE;
+                $data = str_replace('\\', '\\\\', $data);
+            }
+
             if ( is_string( $data ) && ( $unserialized = @unserialize( $data ) ) !== false ) {
                 $data = $this->recursive_unserialize_replace( $from, $to, $unserialized, true );
             } elseif ( is_array( $data ) ) {
@@ -852,6 +862,12 @@ class icit_srdb {
             } else {
                 if ( is_string( $data ) ) {
                     $data = $this->str_replace( $from, $to, $data );
+
+                    // elementor serialization fix
+                    if ( $this->elementor_patch_active ) {
+                        $data = str_replace('\\\\', '\\', $data);
+                        $this->elementor_patch_active = FALSE;
+                    }
                 }
             }
 
